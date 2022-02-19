@@ -67,10 +67,21 @@ class Directed2DVectorised:
         
         
     
-    def surfaceChecker(self, relaxed = True):
-        #self.doubleDerivativeVals = sp.misc.derivative(self.surfaceFunction,self.x,n=2)
-        numerator = 1 + (self.derivativeVals)**2
-        denominator = self.doubleDerivativeVals
+    def surfaceChecker(self, relaxed = True, hyper_accurate = False):
+        if not hyper_accurate:
+            #self.doubleDerivativeVals = sp.misc.derivative(self.surfaceFunction,self.x,n=2)
+            numerator = 1 + (self.derivativeVals)**2
+            denominator = self.doubleDerivativeVals
+        
+        else:
+            #For highly oscillatory functions
+            x = np.linspace(self.min, self.max, 10*self.samples)
+            fun_val = self.surfaceFunction(x)
+            derivativeVals = np.gradient(fun_val, x[1] - x[0],edge_order=2, axis=None)
+            doublederivativeVals = np.gradient(derivativeVals, x[1] - x[0],edge_order=2, axis=None)
+            numerator = 1 + derivativeVals**2
+            denominator = doublederivativeVals
+
         self.curvature = (numerator**1.5)/np.abs((denominator))
         self.condition = 1/((self.k*self.curvature)**0.333333333)
         print(self.condition.max())
