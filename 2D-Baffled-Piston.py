@@ -133,10 +133,23 @@ class Directed2DVectorised:
         
         return F
         
-    def Scatter(self,absolute=False,norm=True):
+    def Scatter(self,absolute=False,norm=True,direct_field=False):
         F  = self.__Integrand()
+        p = np.zeros(F.shape[0],dtype=np.complex128)
+        if direct_field:
+            r =  - self.receiverLocationsX.T[0] + self.sourceLocationX.T[0]
+            l = - self.receiverLocationsY.T[0] + self.sourceLocationY.T[0]
+            R1 = np.sqrt( r*r + l*l ) 
+            theta = np.arccos(l*1/R1) - (- self.sourceAngle + np.pi/2)
+            Directivity = (sp.special.jn(1,self.k*self.a*np.sin(theta)))/(self.k*self.a*np.sin(theta))
+            Directivity[np.isnan(Directivity)] = 0.5
+            #This may be needed for boundary conditions
+            #Directivity[ 3/2*np.pi > theta > np.pi/2] = 0
+            print(theta)
+            field = 2*Directivity*np.exp(0+1j*(R1)*self.k)*1/np.sqrt(R1)
+            p += field
         if self.method == 'trapz':
-            p = -1j/(2*np.pi*self.k)*np.trapz(F,self.x,axis=1)
+            p += -1j/(2*np.pi*self.k)*np.trapz(F,self.x,axis=1)
 
             if norm == True:
                 p = np.abs(p)/np.max(np.abs(p))
@@ -147,7 +160,7 @@ class Directed2DVectorised:
             else:
                 return p 
         elif self.method == 'simp':
-            p = -1j/(2*np.pi*self.k)*sp.integrate.simps(F,self.x,axis=1)
+            p += -1j/(2*np.pi*self.k)*sp.integrate.simps(F,self.x,axis=1)
             
             if norm == True:
                 p = np.abs(p)/np.max(np.abs(p))
@@ -159,7 +172,7 @@ class Directed2DVectorised:
                 return p 
         
         elif self.method == 'cumtrapz':
-            p = -1j/(2*np.pi*self.k)*sp.integrate.cumtrapz(F,self.x,axis=1)
+            p += -1j/(2*np.pi*self.k)*sp.integrate.cumtrapz(F,self.x,axis=1)
             if norm == True:
                 p = np.abs(p)/np.max(np.abs(p))
                 return p
