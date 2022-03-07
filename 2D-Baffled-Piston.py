@@ -219,6 +219,7 @@ def Doppler(signals,dt,axis = 0):
     freq = x
     return freq,1/n*np.mean(np.abs(np.array(fSig))**2,axis=0)
 
+import numpy.matlib
 def fourier_coefs(signal, x):
     dx = x[1] - x[0] #Dx
     N = len(x)
@@ -226,11 +227,22 @@ def fourier_coefs(signal, x):
     fft = (np.fft.fft(signal)/N)[:N//2]
     return freqs, fft
 
-def decompose(freqs, fft, ranges):
+def decompose(freqs, fft, ranges, x):
     c = fft[0]
     a_s = -2*np.real(fft[1:ranges])
-    b_s = -2*np.real(fft[1:ranges])
-    for i in range(1,ranges):
-      #c = c + -2*np.real(fft[i])*np.cos(2*np.pi*i*x) - 2*np.imag(b[i])*np.sin(2*np.pi*i*x)
-      c = c + -2*np.real(fft[i])*np.cos(2*np.pi*freqs[i]*x) - 2*np.imag(b[i])*np.sin(2*np.pi*freqs[i]*x)
-    return np.real(c), a_s, b_s
+    b_s = -2*np.imag(fft[1:ranges])
+    f_comp = 2*np.pi*freqs[1:ranges]
+    temp_a = np.reshape(a_s,(-1,1)) + np.zeros((ranges-1,len(x)))
+    temp_b = np.reshape(b_s,(-1,1)) + np.zeros((ranges-1,len(x)))
+    temp_f = np.reshape(f_comp,(-1,1)) + np.zeros((ranges-1,len(x)))
+    summies = (temp_a * np.cos((temp_f * x)) + temp_b * np.sin((temp_f * x)))
+    summation = np.sum(summies, axis = 0)
+    summation = summation + c
+    return np.real(summation), a_s, b_s,f_comp
+
+def extract_components(a_coef, b_coef, freqs):
+    surface_parameters = []
+    for i in range(len(a_coef)):
+      if a_coef[i] > 0.000001 or b_coef[i] > 0.000001:
+        surface_parameters.append([a_coef[i], b_coef[i], freqs[i]])
+    return surface_parameters
