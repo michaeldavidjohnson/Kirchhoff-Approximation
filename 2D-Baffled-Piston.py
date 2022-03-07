@@ -218,3 +218,19 @@ def Doppler(signals,dt,axis = 0):
         fSig.append(Fsignals)
     freq = x
     return freq,1/n*np.mean(np.abs(np.array(fSig))**2,axis=0)
+
+def fourier_coefs(signal, x):
+    dx = x[1] - x[0] #Dx
+    N = len(x)
+    freqs = np.fft.fftfreq(N, dx)[:N//2]
+    fft = (np.fft.fft(signal)/N)[:N//2]
+    return freqs, fft
+
+def decompose(freqs, fft, ranges):
+    c = fft[0]
+    a_s = -2*np.real(fft[1:ranges])
+    b_s = -2*np.real(fft[1:ranges])
+    for i in range(1,ranges):
+      #c = c + -2*np.real(fft[i])*np.cos(2*np.pi*i*x) - 2*np.imag(b[i])*np.sin(2*np.pi*i*x)
+      c = c + -2*np.real(fft[i])*np.cos(2*np.pi*freqs[i]*x) - 2*np.imag(b[i])*np.sin(2*np.pi*freqs[i]*x)
+    return np.real(c), a_s, b_s
