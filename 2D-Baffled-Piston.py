@@ -28,9 +28,8 @@ class Directed2DVectorised:
             self.min = self.receiverLocationsX.min()
             self.max = self.receiverLocationsX.max()
         else:
-            self.min = - userMinMax
-            #self.min = 0
-            self.max = userMinMax
+            self.min = userMinMax[0]
+            self.max = userMinMax[1]
         self.number = self.receiverLocationsX.shape[0]
         self.samples = userSamples
         self.receiverLocationsX = self.receiverLocationsX.reshape(-1,1) + np.zeros((self.number,self.samples))
