@@ -9,6 +9,7 @@ from mpl_toolkits.mplot3d.axes3d import get_test_data
 from mpl_toolkits.mplot3d import Axes3D
 from IPython.display import clear_output
 from numpy import matlib as mb
+import corner as corner
 import csv
 import time
 
@@ -38,34 +39,32 @@ class Directed2DVectorised:
         self.sourceLocationY = self.sourceLocation[1] + np.zeros((self.number,self.samples))
         #BUG[IGGY] - FIX this, something is breaking and I'm not really sure why
         if type(self.surfaceFunction) == np.ndarray:
-          self.surfaceVals = self.surfaceFunction 
-          self.derivativeVals = np.diff(self.surfaceVals)/np.diff(x)
-          self.doubleDerivativeVals = np.diff(self.derivativeVals)/np.diff(x)
+            self.x = np.linspace(self.min,self.max,self.samples).reshape(1,-1) + np.zeros((self.number,self.samples))
+            self.surfaceVals = self.surfaceFunction 
+            
+            np.gradient(self.surfaceVals, self.x[0][1] - self.x[0][0], edge_order = 2, axis = None)
+            self.derivativeVals = np.gradient(self.surfaceVals, self.x[0][1] - self.x[0][0], edge_order = 2, axis = None)
+            self.doubleDerivativeVals = np.gradient(self.derivativeVals, self.x[0][1] - self.x[0][0], edge_order = 2, axis = None)
 
-          self.surfaceVals = self.surfaceVals.reshape(1,-1) + np.zeros((self.number,self.samples))
-          self.derivativeVals = self.derivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
-          self.doubleDerivativeVals = self.doubleDerivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
-          self.x = np.linspace(self.min,self.max,self.samples).reshape(1,-1) + np.zeros((self.number,self.samples))
+            self.surfaceVals = self.surfaceVals.reshape(1,-1) + np.zeros((self.number,self.samples))
+            self.derivativeVals = self.derivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
+            self.doubleDerivativeVals = self.doubleDerivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
+            
 
         else:
           
-          self.x = np.linspace(self.min,self.max,self.samples).reshape(1,-1) + np.zeros((self.number,self.samples)) #see if this can be changed
-          self.surfaceVals = surfaceFunction(self.x)
-          self.derivativeVals = np.gradient(self.surfaceVals[0], self.x[0][1] - self.x[0][0],edge_order=2, axis=None)
-          self.doubleDerivativeVals = np.gradient(self.derivativeVals, self.x[0][1] - self.x[0][0],edge_order=2, axis=None)
+            self.x = np.linspace(self.min,self.max,self.samples).reshape(1,-1) + np.zeros((self.number,self.samples)) #see if this can be changed
+            self.surfaceVals = surfaceFunction(self.x)
+            self.derivativeVals = np.gradient(self.surfaceVals[0], self.x[0][1] - self.x[0][0],edge_order=2, axis=None)
+            self.doubleDerivativeVals = np.gradient(self.derivativeVals, self.x[0][1] - self.x[0][0],edge_order=2, axis=None)
 
-          self.derivativeVals = self.derivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
-          self.doubleDerivativeVals = self.doubleDerivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
+            self.derivativeVals = self.derivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
+            self.doubleDerivativeVals = self.doubleDerivativeVals.reshape(1,-1) + np.zeros((self.number,self.samples))
         
         if isinstance(self.surfaceVals,float):
             self.surfaceVals = self.surfaceVals + np.zeros((self.number,self.samples))
             self.derivativeVals = self.derivativeVals + np.zeros((self.number,self.samples))
-
-        
-
-        
-        
-        
+         
     
     def surfaceChecker(self, relaxed = True, hyper_accurate = False):
         if not hyper_accurate:
@@ -84,15 +83,15 @@ class Directed2DVectorised:
 
         self.curvature = (numerator**1.5)/np.abs((denominator))
         self.condition = 1/((self.k*self.curvature)**0.333333333)
-        print(self.condition.max())
         
-        if self.condition.max() > 0.8660254037844386:
-            print("Condition failed")
-            print(self.condition.max())
+        if self.condition.max() > 1:
+            #print("Condition failed")
+            #print(self.condition.max())
         
             self.checker = False
         else:
             self.checker = True
+         
         return self.checker
         
         
@@ -176,12 +175,15 @@ class Directed2DVectorised:
             if norm == True:
                 p = np.abs(p)/np.max(np.abs(p))
                 return p
+
+            
             elif absolute == True:
                 p = np.abs(p)
                 return p
             else:
                 return p 
-        
+
+            
         elif self.method == 'cumtrapz':
             p += -1j/(2*np.pi*self.k)*sp.integrate.cumtrapz(F,self.x,axis=1)
             if norm == True:
@@ -192,6 +194,7 @@ class Directed2DVectorised:
                 return p
             else:
                 return p
+
             
 def fourierRes(signal, timeIncrement,axis = 0):
     '''Just give us the fourier transform of a signal'''
@@ -203,9 +206,11 @@ def fourierRes(signal, timeIncrement,axis = 0):
     xf = sp.fft.fftfreq(n,timeIncrement)
     return xf,yf
 
+
 def spatialRes(signal):
     y = sp.fft.fft(signal,axis=0)
     return y
+
 
 def Doppler(signals,dt,axis = 0):
     '''Takes signals of shape (number of signals, number of samples, number of receivers ).
@@ -218,31 +223,3 @@ def Doppler(signals,dt,axis = 0):
         fSig.append(Fsignals)
     freq = x
     return freq,1/n*np.mean(np.abs(np.array(fSig))**2,axis=0)
-
-import numpy.matlib
-def fourier_coefs(signal, x):
-    dx = x[1] - x[0] #Dx
-    N = len(x)
-    freqs = np.fft.fftfreq(N, dx)[:N//2]
-    fft = (np.fft.fft(signal)/N)[:N//2]
-    return freqs, fft
-
-def decompose(freqs, fft, ranges, x):
-    c = fft[0]
-    a_s = -2*np.real(fft[1:ranges])
-    b_s = -2*np.imag(fft[1:ranges])
-    f_comp = 2*np.pi*freqs[1:ranges]
-    temp_a = np.reshape(a_s,(-1,1)) + np.zeros((ranges-1,len(x)))
-    temp_b = np.reshape(b_s,(-1,1)) + np.zeros((ranges-1,len(x)))
-    temp_f = np.reshape(f_comp,(-1,1)) + np.zeros((ranges-1,len(x)))
-    summies = (temp_a * np.cos((temp_f * x)) + temp_b * np.sin((temp_f * x)))
-    summation = np.sum(summies, axis = 0)
-    summation = summation + c
-    return np.real(summation), a_s, b_s,f_comp
-
-def extract_components(a_coef, b_coef, freqs):
-    surface_parameters = []
-    for i in range(len(a_coef)):
-      if a_coef[i] > 0.000001 or b_coef[i] > 0.000001:
-        surface_parameters.append([a_coef[i], b_coef[i], freqs[i]])
-    return surface_parameters
