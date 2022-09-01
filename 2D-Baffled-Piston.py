@@ -15,6 +15,23 @@ import time
 
 class Directed2DVectorised:
     def __init__(self,sourceLocation,receiverLocations,surfaceFunction,frequency,a,sourceAngle = -np.pi/4,method = 'trapz',userMinMax = None,userSamples = 9000,absolute = True):
+        
+        '''
+        Init function for the Kirchhoff approximation using a radiation from a baffled piston source.
+        Inputs:
+        
+        sourceLocation: List of x and y component of the source location
+        receiverLocations: List of lists of x and y components of receiver locations
+        surfaceFunction: Either a function that only takes x as an argument, or an array of values that relate to surface elevation.
+        frequency: Source frequency 
+        a: Piston aperture
+        sourceAngle: Angle of the source
+        method: Integration methods, can be trapz, simps or cumtrapz. simp is usually recommended
+        userMinMax: [a,b] start and end point of the surface
+        userSamples: integer showing density of samples
+        absolute: Bool, absolute value
+        '''
+        
         self.sourceLocation = np.array(sourceLocation)
         self.receiverLocationsX = np.array(receiverLocations)[:,0]
         self.receiverLocationsY = np.array(receiverLocations)[:,1]
@@ -66,6 +83,15 @@ class Directed2DVectorised:
          
     
     def surfaceChecker(self, relaxed = True, hyper_accurate = False):
+        
+        '''
+        Check if the surface satisfies the Kirchhoff criteria. 
+        Inputs:
+        relaxed - Increases from source angle to 1, although it seems it's just 1
+        hyper_accuare - More accurate calculation for highly oscillatory functions, when there is no array defining surface
+        elevation.
+        '''
+        
         if not hyper_accurate:
             #self.doubleDerivativeVals = sp.misc.derivative(self.surfaceFunction,self.x,n=2)
             numerator = 1 + (self.derivativeVals)**2
@@ -200,13 +226,14 @@ def fourierRes(signal, timeIncrement,axis = 0):
     import scipy as sp
     sampleFrequency = 1/timeIncrement
     n = signal.shape[0]
-    yf = sp.fft.fft(signal,axis=axis)
+    yf = np.fft.fft(signal,axis=axis)
     #xf = sp.fft.fftshift(sp.fft.fftfreq(n,timeIncrement))
-    xf = sp.fft.fftfreq(n,timeIncrement)
-    return xf,yf
+    xf = np.fft.fftfreq(n,timeIncrement)
+    return np.fft.fftshift(xf),np.fft.fftshift(yf)
 
 
 def spatialRes(signal):
+    '''Merely a FFT.'''
     y = sp.fft.fft(signal,axis=0)
     return y
 
@@ -225,6 +252,7 @@ def Doppler(signals,dt,axis = 0):
 
 import numpy.matlib
 def fourier_coefs(signal, x):
+    '''Return the Fourier transform from a signal.'''
     dx = x[1] - x[0] #Dx
     N = len(x)
     freqs = np.fft.fftfreq(N, dx)[:N//2]
@@ -232,6 +260,8 @@ def fourier_coefs(signal, x):
     return freqs, fft
 
 def decompose(freqs, fft, ranges, x):
+    '''Decompose a Fourier transform and the frequencies into coefficients. Returns
+       the full decomposed surface, the coefficients, and the frequency.'''
     c = fft[0]
     a_s = -2*np.real(fft[1:ranges])
     b_s = -2*np.imag(fft[1:ranges])
@@ -245,6 +275,7 @@ def decompose(freqs, fft, ranges, x):
     return np.real(summation), a_s, b_s,f_comp
 
 def extract_components(a_coef, b_coef, freqs):
+    '''Extract the fouerier components that aren't extremely small. '''
     surface_parameters = []
     for i in range(len(a_coef)):
         if a_coef[i] > 0.000001 or b_coef[i] > 0.000001:
