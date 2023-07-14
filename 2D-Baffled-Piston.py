@@ -1,3 +1,4 @@
+
 from scipy.integrate import quad,romberg
 from scipy.misc import derivative
 from sklearn.metrics import mean_squared_error
@@ -238,7 +239,7 @@ def spatialRes(signal):
     return y
 
 
-def Doppler(signals,dt,axis = 0):
+def Doppler(signals,dt,axis = 0,real=True):
     '''Takes signals of shape (number of signals, number of samples, number of receivers ).
     Returns the Doppler spectrum of all the receivers.'''
     n = np.array(signals[0]).size
@@ -248,7 +249,10 @@ def Doppler(signals,dt,axis = 0):
         x,Fsignals = fourierRes(np.array(s),dt,axis=axis)
         fSig.append(Fsignals)
     freq = x
-    return freq,1/n*np.mean(np.abs(np.array(fSig))**2,axis=0)
+    if real:
+        return freq,1/n*np.mean(np.abs(np.array(fSig))**2,axis=0)
+    else:
+        return freq,1/n*np.mean(np.real(np.array(fSig)),axis=0),1/n*np.mean(np.imag(np.array(fSig)),axis=0)
 
 import numpy.matlib
 def fourier_coefs(signal, x):
